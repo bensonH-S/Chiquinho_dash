@@ -11,12 +11,8 @@ def limpar_numero(x):
     if pd.isna(x) or x == '' or x is None:
         return 0.0
     texto = str(x).replace('R$', '').replace(' ', '').strip()
-    # Adiciona a substituição da vírgula por ponto para garantir float
     texto = texto.replace(',', '.')
-
-    # Remove tudo que não for dígito ou ponto
     texto = ''.join(c for c in texto if c.isdigit() or c == '.')
-
     if not texto:
         return 0.0
     try:
@@ -34,7 +30,6 @@ def get_absolute_file_url(relative_path):
     full_path = os.path.join(BASE_DIR, path_segment)
     return 'file:///' + full_path.replace('\\', '/')
 
-# app/utils.py (Substitua a função carregar_fotos_melhorias)
 
 def carregar_fotos_melhorias():
     """
@@ -53,8 +48,6 @@ def carregar_fotos_melhorias():
         nome = file.lower()
         caminho = f"/static/fotos_melhorias/{file}"
 
-        # Tenta extrair a base do nome (ex: "treinamento-equipe" ou "1")
-        # Se contiver 'antes' ou 'depois', remove para obter o identificador único.
         base = nome.replace(".jpg", "").replace(".jpeg", "").replace(".png", "").replace("antes", "").replace("depois", "").strip('-')
 
         if base not in registros:
@@ -64,23 +57,18 @@ def carregar_fotos_melhorias():
             registros[base]["antes"] = caminho
         elif "depois" in nome:
             registros[base]["depois"] = caminho
-        # Se for uma foto que não tem 'antes' nem 'depois', ela já é registrada com o caminho completo, mas manteremos o nome 'depois' como o principal para visualização.
         elif not registros[base]["depois"]:
              registros[base]["depois"] = caminho
-
 
     lista = []
     for base, item in registros.items():
         if item["antes"] and item["depois"] and item["antes"] != item["depois"]:
-            # Se tem antes e depois, é uma MELHORIA (comparação)
             tipo = "MELHORIA"
             titulo_final = f"Melhoria: {item['titulo_base']}"
         elif item["depois"]:
-            # Se tem apenas 'depois' ou a foto única, é um REGISTRO
             tipo = "REGISTRO"
             titulo_final = f"Registro: {item['titulo_base']}"
         else:
-            # Ignora registros incompletos ou vazios
             continue
 
         lista.append({
@@ -92,6 +80,122 @@ def carregar_fotos_melhorias():
 
     return lista
 
+
+def analisar_despesas_extras(despesas_df):
+    """
+    Analisa as despesas extras por categoria e forma de pagamento.
+    Retorna dicionário com totais, categorias e alertas.
+    """
+    despesas_df['Valor'] = despesas_df['Valor (R$)'].apply(limpar_numero)
+    despesas_df['Categoria'] = despesas_df['Categoria'].fillna('Outros')
+    despesas_df['Pago com'] = despesas_df['Pago com'].fillna('Não especificado')
+
+    total_despesas = despesas_df['Valor'].sum()
+
+    # Agrupa por categoria
+    por_categoria = despesas_df.groupby('Categoria')['Valor'].sum().round(2).to_dict()
+
+    # Identifica despesas pagas fora do caixa
+    fora_caixa = despesas_df[
+        despesas_df['Pago com'].str.contains('próprio|gerente|pessoal', case=False, na=False)
+    ]['Valor'].sum()
+
+    # Lista detalhada de despesas
+    lista_despesas = []
+    for _, row in despesas_df.iterrows():
+        lista_despesas.append({
+            'data': str(row.get('Data', '')),
+            'descricao': str(row.get('Descrição', '')),
+            'categoria': str(row.get('Categoria', 'Outros')),
+            'valor': limpar_numero(row.get('Valor (R$)', 0)),
+            'pago_com': str(row.get('Pago com', '')),
+            'observacao': str(row.get('Observação', ''))
+        })
+
+    return {
+        'total': round(total_despesas, 2),
+        'por_categoria': por_categoria,
+        'fora_caixa': round(fora_caixa, 2),
+        'lista': lista_despesas
+    }
+
+
+def analisar_sangrias(sangria_df):
+    """
+    Analisa as sangrias por motivo e identifica padrões.
+    """
+    sangria_df['Valor'] = sangria_df['Valor R$'].apply(limpar_numero)
+    sangria_df['Motivo'] = sangria_df['Motivo'].fillna('Não especificado')
+
+    total_sangrias = sangria_df['Valor'].sum()
+
+    # Agrupa por motivo
+    por_motivo = sangria_df.groupby('Motivo')['Valor'].sum().round(2).to_dict()
+
+    # Conta quantidade de sangrias
+    qtd_sangrias = len(sangria_df)
+
+    # Lista detalhada
+    lista_sangrias = []
+    for _, row in sangria_df.iterrows():
+        lista_sangrias.append({
+            'data': str(row.get('Data', '')),
+            'motivo': str(row.get('Motivo', '')),
+            'observacoes': str(row.get('Observações', '')),
+            'valor': limpar_numero(row.get('Valor R$', 0))
+        })
+
+    return {
+        'total': round(total_sangrias, 2),
+        'por_motivo': por_motivo,
+        'quantidade': qtd_sangrias,
+        'lista': lista_sangrias
+    }
+
+
+def gerar_insights(dados):
+    """
+    Gera insights automáticos baseados nos dados do relatório.
+    """
+    insights = []
+    alertas = []
+    recomendacoes = []
+
+    # Análise de despesas sobre faturamento
+    perc_despesas = (dados['saidas_total'] / dados['faturamento_total'] * 100) if dados['faturamento_total'] > 0 else 0
+
+    if perc_despesas > 15:
+        alertas.append(f"⚠️ Despesas representam {perc_despesas:.1f}% do faturamento (ideal: abaixo de 15%)")
+        recomendacoes.append("Revisar custos operacionais e identificar oportunidades de redução")
+
+    # Despesas fora do caixa
+    if dados['despesas_extras']['fora_caixa'] > 0:
+        alertas.append(f"🔴 R$ {dados['despesas_extras']['fora_caixa']:.2f} pagos com recursos próprios/gerente")
+        recomendacoes.append("Estabelecer fundo de caixa pequeno para despesas emergenciais")
+
+    # Análise de sangrias
+    if dados['sangrias']['quantidade'] > 5:
+        alertas.append(f"📊 {dados['sangrias']['quantidade']} sangrias realizadas na semana")
+        recomendacoes.append("Avaliar se há necessidade de ajustar o fluxo de caixa inicial")
+
+    # Ticket médio
+    if dados['ticket_medio'] < 20:
+        insights.append(f"💡 Ticket médio de R$ {dados['ticket_medio']:.2f} - oportunidade de upsell")
+        recomendacoes.append("Treinar equipe em técnicas de venda adicional (combos, upgrades)")
+
+    # Contas vencidas
+    if dados['vencido'] > 0:
+        alertas.append(f"💰 R$ {dados['vencido']:.2f} em contas vencidas")
+        recomendacoes.append("Priorizar regularização de contas vencidas para evitar juros")
+
+    return {
+        'insights': insights,
+        'alertas': alertas,
+        'recomendacoes': recomendacoes,
+        'perc_despesas_faturamento': round(perc_despesas, 1)
+    }
+
+
 def ler_dados():
     if not os.path.exists(EXCEL_FILE):
         return {"erro": f"Arquivo não encontrado:<br><b>{EXCEL_FILE}</b><br>Coloque na pasta data/"}
@@ -102,11 +206,10 @@ def ler_dados():
         ticket = pd.read_excel(EXCEL_FILE, sheet_name="TICKET_MEDIO", dtype=str)
         formas = pd.read_excel(EXCEL_FILE, sheet_name="FORMAS_PAGAMENTO", dtype=str)
         produtos = pd.read_excel(EXCEL_FILE, sheet_name="PRODUTOS_VENDIDOS", dtype=str)
-        # CORREÇÃO: Pula 2 linhas de metadados
         contas_df = pd.read_excel(EXCEL_FILE, sheet_name="REGISTRO DE CONTAS", header=2, dtype=str)
         resumo = pd.read_excel(EXCEL_FILE, sheet_name="RESUMO GERAL", dtype=str)
-        sangria = pd.read_excel(EXCEL_FILE, sheet_name="SANGRIA", dtype=str)
-        despesas = pd.read_excel(EXCEL_FILE, sheet_name="DESPESAS EXTRAS", dtype=str)
+        sangria_df = pd.read_excel(EXCEL_FILE, sheet_name="SANGRIA", dtype=str)
+        despesas_df = pd.read_excel(EXCEL_FILE, sheet_name="DESPESAS EXTRAS", dtype=str)
         problemas = pd.read_excel(EXCEL_FILE, sheet_name="Problemas", dtype=str)
 
         faturamento_total = limpar_numero(vendas.iloc[1, 8])
@@ -133,24 +236,23 @@ def ler_dados():
         top10 = produtos.groupby('Produto')['Quantidade'].sum().sort_values(ascending=False).head(10)
         top_produtos = [(idx, int(qtd)) for idx, qtd in top10.items()]
 
-        sangria_total = sangria['Valor R$'].apply(limpar_numero).sum()
-        despesas_total = despesas['Valor (R$)'].apply(limpar_numero).sum()
-        saidas_total = round(sangria_total + despesas_total, 2)
+        # NOVA ANÁLISE DE DESPESAS E SANGRIAS
+        despesas_extras = analisar_despesas_extras(despesas_df)
+        sangrias = analisar_sangrias(sangria_df)
+
+        saidas_total = round(sangrias['total'] + despesas_extras['total'], 2)
         saldo_caixa = round(faturamento_total - saidas_total, 2)
 
         # CONTAS A PAGAR
         contas = []
         for _, row in contas_df.iterrows():
             if pd.notna(row.get('ID')) and str(row['ID']).strip():
-
-                # --- CORREÇÃO E FORMATAÇÃO DA DATA ---
                 data_vencimento = str(row.get('DATA VENCIMENTO', ''))
                 try:
                     data_obj = datetime.strptime(data_vencimento[:10], '%Y-%m-%d')
                     data_formatada = data_obj.strftime('%d/%m/%Y')
                 except ValueError:
                     data_formatada = data_vencimento
-                # -------------------------------------
 
                 contas.append({
                     "id": int(row['ID']),
@@ -167,7 +269,8 @@ def ler_dados():
 
         fotos_melhorias = carregar_fotos_melhorias()
 
-        return {
+        # Monta dicionário de dados
+        dados = {
             'faturamento_total': round(faturamento_total, 2),
             'clientes_total': clientes_total,
             'ticket_medio': ticket_medio,
@@ -177,8 +280,8 @@ def ler_dados():
             'valores_diarios': [round(x, 2) for x in valores_diarios],
             'formas_pagamento': formas_data,
             'top_produtos': top_produtos,
-            'sangria_total': round(sangria_total, 2),
-            'despesas_total': round(despesas_total, 2),
+            'sangrias': sangrias,
+            'despesas_extras': despesas_extras,
             'saidas_total': saidas_total,
             'saldo_caixa': saldo_caixa,
             'a_vencer': round(a_vencer, 2),
@@ -189,6 +292,11 @@ def ler_dados():
             'periodo': '01 a 07 de dezembro de 2025',
             'data_hoje': datetime.now().strftime('%d/%m/%Y')
         }
+
+        # GERA INSIGHTS
+        dados['insights'] = gerar_insights(dados)
+
+        return dados
 
     except Exception as e:
         import traceback
