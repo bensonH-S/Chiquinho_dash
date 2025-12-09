@@ -134,9 +134,7 @@ def ler_dados():
                 # --- CORREÇÃO E FORMATAÇÃO DA DATA ---
                 data_vencimento = str(row.get('DATA VENCIMENTO', ''))
                 try:
-                    # Converte de 'YYYY-MM-DD HH:MM:SS' para objeto datetime
                     data_obj = datetime.strptime(data_vencimento[:10], '%Y-%m-%d')
-                    # Formata para o padrão brasileiro
                     data_formatada = data_obj.strftime('%d/%m/%Y')
                 except ValueError:
                     data_formatada = data_vencimento
