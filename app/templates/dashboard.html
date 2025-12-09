@@ -387,11 +387,14 @@
             <div class="kpi-card" style="border-left-color: #8B5CF6;">
                 <div class="kpi-label" style="color: #8B5CF6;">Despesas Extras</div>
                 <div class="kpi-value">R$ {{ despesas_extras.total | brl }}</div>
-                {% if despesas_extras.fora_caixa > 0 %}
-                <div style="font-size: 0.75em; color: #991B1B; margin-top: 5px; font-weight: 600;">
-                    ⚠️ R$ {{ despesas_extras.fora_caixa | brl }} fora do caixa
+                <div style="font-size: 0.75em; color: var(--text-secondary); margin-top: 5px;">
+                    {{ despesas_extras.lista|length }} registros
+                    {% if despesas_extras.fora_caixa > 0 %}
+                    <span style="color: #991B1B; font-weight: 600; display: block; margin-top: 2px;">
+                        ⚠️ R$ {{ despesas_extras.fora_caixa | brl }} fora do caixa
+                    </span>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
             <div class="kpi-card" style="border-left-color: #F59E0B;">
                 <div class="kpi-label" style="color: #F59E0B;">Saídas Totais</div>
@@ -464,82 +467,78 @@
             <p class="section-subtitle">Análise completa de Sangrias e Despesas Extras</p>
         </div>
 
-        <div class="row-2">
-            <div class="card-large">
-                <div class="card-header">
-                    <h3>Detalhamento de Sangrias</h3>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Motivo</th>
-                                <th>Observações</th>
-                                <th style="text-align: right;">Valor</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for s in sangrias.lista %}
-                            <tr>
-                                <td>{{ s.data }}</td>
-                                <td style="font-weight: 500;">{{ s.motivo }}</td>
-                                <td style="color: var(--text-secondary); font-size: 0.85em;">{{ s.observacoes }}</td>
-                                <td style="text-align: right; font-weight: 600; color: #EF4444;">R$ {{ s.valor | brl }}
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="4" style="text-align: center; color: var(--text-secondary);">Nenhuma
-                                    sangria registrada.</td>
-                            </tr>
-                            {% endfor %}
-                            <tr style="background-color: var(--bg-light); font-weight: 700;">
-                                <td colspan="3" style="text-align: right; padding-right: 20px;">TOTAL:</td>
-                                <td style="text-align: right; color: #EF4444;">R$ {{ sangrias.total | brl }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+        <div class="card-large" style="margin-bottom: 30px;">
+            <div class="card-header">
+                <h3>Detalhamento de Sangrias</h3>
             </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Motivo</th>
+                            <th>Observações</th>
+                            <th style="text-align: right;">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sangrias.lista %}
+                        <tr>
+                            <td>{{ s.data }}</td>
+                            <td style="font-weight: 500;">{{ s.motivo }}</td>
+                            <td style="color: var(--text-secondary); font-size: 0.85em;">{{ s.observacoes }}</td>
+                            <td style="text-align: right; font-weight: 600; color: #EF4444;">R$ {{ s.valor | brl }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-secondary);">Nenhuma sangria
+                                registrada.</td>
+                        </tr>
+                        {% endfor %}
+                        <tr style="background-color: var(--bg-light); font-weight: 700;">
+                            <td colspan="3" style="text-align: right; padding-right: 20px;">TOTAL:</td>
+                            <td style="text-align: right; color: #EF4444;">R$ {{ sangrias.total | brl }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-            <div class="card-large">
-                <div class="card-header">
-                    <h3>Detalhamento de Despesas Extras</h3>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Descrição</th>
-                                <th>Categoria</th>
-                                <th style="text-align: right;">Valor</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for d in despesas_extras.lista %}
-                            <tr>
-                                <td>{{ d.data }}</td>
-                                <td style="font-weight: 500;">{{ d.descricao }}</td>
-                                <td><span class="badge" style="background: #E0F2FE; color: #075985;">{{ d.categoria
-                                        }}</span></td>
-                                <td style="text-align: right; font-weight: 600; color: #8B5CF6;">R$ {{ d.valor | brl }}
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="4" style="text-align: center; color: var(--text-secondary);">Nenhuma
-                                    despesa extra registrada.</td>
-                            </tr>
-                            {% endfor %}
-                            <tr style="background-color: var(--bg-light); font-weight: 700;">
-                                <td colspan="3" style="text-align: right; padding-right: 20px;">TOTAL:</td>
-                                <td style="text-align: right; color: #8B5CF6;">R$ {{ despesas_extras.total | brl }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+        <div class="card-large" style="margin-bottom: 30px;">
+            <div class="card-header">
+                <h3>Detalhamento de Despesas Extras</h3>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Descrição</th>
+                            <th>Categoria</th>
+                            <th style="text-align: right;">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in despesas_extras.lista %}
+                        <tr>
+                            <td>{{ d.data }}</td>
+                            <td style="font-weight: 500;">{{ d.descricao }}</td>
+                            <td><span class="badge" style="background: #E0F2FE; color: #075985;">{{ d.categoria
+                                    }}</span></td>
+                            <td style="text-align: right; font-weight: 600; color: #8B5CF6;">R$ {{ d.valor | brl }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-secondary);">Nenhuma despesa
+                                extra registrada.</td>
+                        </tr>
+                        {% endfor %}
+                        <tr style="background-color: var(--bg-light); font-weight: 700;">
+                            <td colspan="3" style="text-align: right; padding-right: 20px;">TOTAL:</td>
+                            <td style="text-align: right; color: #8B5CF6;">R$ {{ despesas_extras.total | brl }}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
