@@ -34,10 +34,12 @@ def get_absolute_file_url(relative_path):
     full_path = os.path.join(BASE_DIR, path_segment)
     return 'file:///' + full_path.replace('\\', '/')
 
+# app/utils.py (Substitua a função carregar_fotos_melhorias)
 
 def carregar_fotos_melhorias():
     """
     Lê imagens 'antes' e 'depois' da pasta /static/fotos_melhorias.
+    Classifica como 'MELHORIA' (se tiver Antes e Depois) ou 'REGISTRO'.
     """
     fotos_dir = os.path.join(BASE_DIR, "static", "fotos_melhorias")
 
@@ -51,34 +53,44 @@ def carregar_fotos_melhorias():
         nome = file.lower()
         caminho = f"/static/fotos_melhorias/{file}"
 
-        base = ''.join([c for c in nome if c.isdigit()]) or nome.replace("antes","").replace("depois","")
+        # Tenta extrair a base do nome (ex: "treinamento-equipe" ou "1")
+        # Se contiver 'antes' ou 'depois', remove para obter o identificador único.
+        base = nome.replace(".jpg", "").replace(".jpeg", "").replace(".png", "").replace("antes", "").replace("depois", "").strip('-')
 
         if base not in registros:
-            registros[base] = {"antes": "", "depois": "", "tipo": "registro"}
+            registros[base] = {"antes": "", "depois": "", "tipo": "registro", "titulo_base": base.replace("-", " ").title()}
 
         if "antes" in nome:
             registros[base]["antes"] = caminho
         elif "depois" in nome:
             registros[base]["depois"] = caminho
+        # Se for uma foto que não tem 'antes' nem 'depois', ela já é registrada com o caminho completo, mas manteremos o nome 'depois' como o principal para visualização.
+        elif not registros[base]["depois"]:
+             registros[base]["depois"] = caminho
+
 
     lista = []
     for base, item in registros.items():
-        if item["antes"] and item["depois"]:
-            tipo = "melhoria"
+        if item["antes"] and item["depois"] and item["antes"] != item["depois"]:
+            # Se tem antes e depois, é uma MELHORIA (comparação)
+            tipo = "MELHORIA"
+            titulo_final = f"Melhoria: {item['titulo_base']}"
+        elif item["depois"]:
+            # Se tem apenas 'depois' ou a foto única, é um REGISTRO
+            tipo = "REGISTRO"
+            titulo_final = f"Registro: {item['titulo_base']}"
         else:
-            tipo = "registro"
-
-        titulo = f"Reg. {base}"
+            # Ignora registros incompletos ou vazios
+            continue
 
         lista.append({
             "antes": item["antes"],
             "depois": item["depois"],
             "tipo": tipo,
-            "titulo": titulo
+            "titulo": titulo_final
         })
 
     return lista
-
 
 def ler_dados():
     if not os.path.exists(EXCEL_FILE):

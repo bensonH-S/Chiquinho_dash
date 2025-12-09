@@ -197,58 +197,96 @@
             width: 100%;
         }
 
-        /* Foto Grid */
+        /* FOTO GRID – cards mais profissionais */
         .photo-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 24px;
             margin-top: 20px;
         }
 
         .comparison-card {
-            background-color: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            width: calc(50% - 10px);
-            /* Duas colunas */
+            background-color: #ffffff;
+            border-radius: 14px;
+            padding: 14px 16px 12px;
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            display: flex;
+            flex-direction: column;
             box-sizing: border-box;
+        }
+
+        .comparison-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .tag-tipo {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 4px 10px;
+            border-radius: 999px;
+        }
+
+        .tag-tipo.melhoria {
+            background: rgba(34, 197, 94, 0.12);
+            color: #15803d;
+        }
+
+        .tag-tipo.registro {
+            background: rgba(59, 130, 246, 0.12);
+            color: #1d4ed8;
+        }
+
+        .comparison-caption {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .comparison-images {
             display: flex;
-            gap: 15px;
+            gap: 12px;
         }
 
         .img-box {
             flex: 1;
             text-align: center;
+            position: relative;
         }
 
         .img-box img {
             width: 100%;
-            height: 200px;
+            height: 210px;
             object-fit: cover;
-            border-radius: 4px;
-            margin-bottom: 8px;
+            border-radius: 8px;
             border: 1px solid var(--border-color);
+            transition: transform 0.25s ease-out;
+        }
+
+        .comparison-card:hover .img-box img {
+            transform: scale(1.02);
         }
 
         .img-label {
-            font-size: 0.75em;
+            font-size: 0.7rem;
             font-weight: 600;
             color: var(--text-secondary);
-            padding: 5px 0;
-            border-top: 1px dashed var(--border-color);
+            padding-top: 6px;
+            text-transform: uppercase;
         }
 
+        /* remove h4 antigo dentro dos cards de foto */
         .photo-grid h4 {
-            font-size: 1.1em;
-            color: var(--brand-blue-dark);
-            margin-top: 0;
-            margin-bottom: 10px;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 5px;
+            display: none;
         }
 
         .finance-summary {
@@ -439,24 +477,43 @@
 
         {% if fotos_melhorias %}
         <div class="section-header" style="margin-top: 40px;">
-            <h2 class="section-title">Registro de Melhorias</h2>
+            <h2 class="section-title">Registro de Melhorias e Ações</h2>
+            <p class="section-subtitle">Evidências fotográficas de melhorias, reformas e registros operacionais.</p>
         </div>
+
         <div class="photo-grid">
             {% for foto_item in fotos_melhorias %}
             <div class="comparison-card">
-                <h4>{{ foto_item.titulo }} ({{ foto_item.tipo|upper }})</h4>
+                <div class="comparison-header">
+                    <span class="tag-tipo {% if foto_item.tipo == 'MELHORIA' %}melhoria{% else %}registro{% endif %}">
+                        {% if foto_item.tipo == 'MELHORIA' %}
+                        Melhoria
+                        {% else %}
+                        Registro
+                        {% endif %}
+                    </span>
+                    <span class="comparison-caption">
+                        {{ foto_item.titulo }}
+                    </span>
+                </div>
+
                 <div class="comparison-images">
+                    {% if foto_item.tipo == 'MELHORIA' %}
                     <div class="img-box">
                         <img src="{{ foto_item.antes }}" alt="Antes"
-                            onerror="this.src='https://placehold.co/300x200/ccc/666?text=ANTES+FOTO+NAO+ENCONTRADA'">
-                        <div class="img-label">ANTES</div>
+                            onerror="this.src='https://placehold.co/300x200/ccc/666?text=ANTES'">
+                        <div class="img-label">Antes</div>
                     </div>
-
-                    {% if foto_item.depois %}
                     <div class="img-box">
                         <img src="{{ foto_item.depois }}" alt="Depois"
-                            onerror="this.src='https://placehold.co/300x200/27ae60/white?text=DEPOIS+FOTO+NAO+ENCONTRADA'">
-                        <div class="img-label">DEPOIS</div>
+                            onerror="this.src='https://placehold.co/300x200/27ae60/ffffff?text=DEPOIS'">
+                        <div class="img-label">Depois</div>
+                    </div>
+                    {% else %}
+                    <div class="img-box">
+                        <img src="{{ foto_item.depois }}" alt="{{ foto_item.titulo }}"
+                            onerror="this.src='https://placehold.co/400x260/27ae60/ffffff?text=REGISTRO'">
+                        <div class="img-label">Registro</div>
                     </div>
                     {% endif %}
                 </div>
@@ -464,6 +521,7 @@
             {% endfor %}
         </div>
         {% endif %}
+
 
     </div>
     {% endif %}
