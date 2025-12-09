@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório Gerencial • Chiquinho Sorvetes</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            /* Cores da Marca Modernizadas */
+            --brand-blue: #003087;
+            --brand-blue-dark: #002260;
+            --brand-orange: #F15A29;
+
+            /* Semântica */
+            --success-bg: #DCFCE7;
+            --success-text: #166534;
+            --danger-bg: #FEE2E2;
+            --danger-text: #991B1B;
+            --warning-bg: #FEF3C7;
+            --warning-text: #92400E;
+
+            /* Neutros */
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --bg-light: #F9FAFB;
+            --border-color: #E5E7EB;
+
+            /* Tipografia */
+            --font-main: 'Inter', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            background-color: white;
+            border-bottom: 4px solid var(--brand-orange);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        header h1 {
+            color: var(--brand-blue-dark);
+            font-size: 2.2em;
+            margin: 0 0 5px 0;
+            font-weight: 800;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            margin: 0;
+        }
+
+        .section-header {
+            border-left: 5px solid var(--brand-orange);
+            padding-left: 15px;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--brand-blue-dark);
+            margin: 0;
+        }
+
+        .section-subtitle {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid var(--brand-blue);
+        }
+
+        .kpi-label {
+            font-size: 0.8em;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .kpi-value {
+            font-size: 2em;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .row-2 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card-large {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .card-header h3 {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--brand-blue-dark);
+            margin: 0 0 20px 0;
+        }
+
+        /* Tabela Contas */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            font-size: 0.9em;
+        }
+
+        th {
+            background-color: var(--bg-light);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Badges de Status */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.a_vencer {
+            background-color: var(--warning-bg);
+            color: var(--warning-text);
+        }
+
+        .badge.vencido {
+            background-color: var(--danger-bg);
+            color: var(--danger-text);
+        }
+
+        .badge.pago {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+        }
+
+        /* Gráficos */
+        .chart-container {
+            height: 300px;
+            width: 100%;
+        }
+
+        /* Foto Grid */
+        .photo-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .comparison-card {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: calc(50% - 10px);
+            /* Duas colunas */
+            box-sizing: border-box;
+        }
+
+        .comparison-images {
+            display: flex;
+            gap: 15px;
+        }
+
+        .img-box {
+            flex: 1;
+            text-align: center;
+        }
+
+        .img-box img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .img-label {
+            font-size: 0.75em;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 5px 0;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .photo-grid h4 {
+            font-size: 1.1em;
+            color: var(--brand-blue-dark);
+            margin-top: 0;
+            margin-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+
+        .finance-summary {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            /* Estilos para os novos cartões de resumo */
+        }
+
+        .total-box {
+            flex: 1;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            background-color: var(--bg-light);
+            border: 1px solid var(--border-color);
+        }
+
+        .status-label {
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-warning {
+            color: var(--warning-text);
+        }
+
+        .status-danger {
+            color: var(--danger-text);
+        }
+
+        .status-success {
+            color: var(--success-text);
+        }
+
+        .total-value {
+            font-size: 1.8em;
+            font-weight: 800;
+            margin: 5px 0 0 0;
+            color: var(--text-primary);
+        }
+
+        /* Estilos para a lista de contas no corpo do html */
+        .table-container td:nth-child(5) {
+            color: var(--brand-blue-dark);
+        }
+    </style>
+</head>
+
+<body>
+    {% if erro %}
+    <div class="container" style="text-align: center; padding: 50px; background: #fee2e2; border: 1px solid #991B1B;">
+        <h1 style="color: #991B1B;">Erro Fatal de Leitura do Excel</h1>
+        <p>{{ erro|safe }}</p>
+    </div>
+    {% else %}
+    <header>
+        <h1>Relatório Gerencial Chiquinho Sorvetes</h1>
+        <p>Análise de Desempenho e Financeira – Período: **{{ periodo }}** | Data de Emissão: {{ data_hoje }}</p>
+    </header>
+
+    <div class="container">
+
+        <div class="section-header">
+            <h2 class="section-title">Performance da Semana</h2>
+            <p class="section-subtitle">Dados de Vendas, Ticket Médio e Movimentação Financeira</p>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card" style="border-left-color: #10B981;">
+                <div class="kpi-label" style="color: #10B981;">Faturamento Total</div>
+                <div class="kpi-value">R$ {{ "%.2f"|format(faturamento_total)|replace('.', ',') }}</div>
+            </div>
+            <div class="kpi-card" style="border-left-color: var(--brand-orange);">
+                <div class="kpi-label" style="color: var(--brand-orange);">Clientes Atendidos</div>
+                <div class="kpi-value">{{ clientes_total }}</div>
+            </div>
+            <div class="kpi-card" style="border-left-color: var(--brand-blue);">
+                <div class="kpi-label" style="color: var(--brand-blue);">Ticket Médio</div>
+                <div class="kpi-value">R$ {{ "%.2f"|format(ticket_medio)|replace('.', ',') }}</div>
+            </div>
+            <div class="kpi-card" style="border-left-color: #6366F1;">
+                <div class="kpi-label" style="color: #6366F1;">Melhor Dia ({{ melhor_dia }})</div>
+                <div class="kpi-value">R$ {{ "%.2f"|format(melhor_dia_valor)|replace('.', ',') }}</div>
+            </div>
+        </div>
+
+        <div class="row-2">
+            <div class="card-large">
+                <div class="card-header">
+                    <h3>Vendas Diárias (R$)</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="vendasChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card-large">
+                <div class="card-header">
+                    <h3>Resumo de Caixa</h3>
+                </div>
+                <div style="font-size: 1em;">
+                    <p style="font-weight: 600; color: #10B981; margin-top: 0;">Entradas Totais: <span
+                            style="float: right;">R$ {{ "%.2f"|format(faturamento_total)|replace('.', ',') }}</span></p>
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 10px 0;">
+                    <p style="color: var(--text-secondary);">Sangrias: <span style="float: right;">- R$ {{
+                            "%.2f"|format(sangria_total)|replace('.', ',') }}</span></p>
+                    <p style="color: var(--text-secondary);">Despesas Extras: <span style="float: right;">- R$ {{
+                            "%.2f"|format(despesas_total)|replace('.', ',') }}</span></p>
+                    <hr style="border: 0; border-top: 2px solid var(--text-primary); margin: 15px 0;">
+                    <p style="font-weight: 700; font-size: 1.5em; color: var(--brand-blue-dark);">Saldo de Caixa: <span
+                            style="float: right;">R$ {{ "%.2f"|format(saldo_caixa)|replace('.', ',') }}</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row-2">
+            <div class="card-large">
+                <div class="card-header">
+                    <h3>Distribuição de Vendas por Forma de Pagamento</h3>
+                </div>
+                <div class="chart-container" style="height: 350px;">
+                    <canvas id="formasChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card-large">
+                <div class="card-header">
+                    <h3>Top 10 Produtos Mais Vendidos (Quantidade)</h3>
+                </div>
+                <div class="chart-container" style="height: 350px;">
+                    <canvas id="topProdutos"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-header">
+            <h2 class="section-title">Agenda Financeira & Contas</h2>
+        </div>
+
+        <div class="card-large">
+            <div class="finance-summary">
+                <div class="total-box">
+                    <span class="status-label status-warning">A Vencer</span>
+                    <p class="total-value" id="valor_a_vencer">{{ a_vencer }}</p>
+                </div>
+                <div class="total-box">
+                    <span class="status-label status-danger">Vencido</span>
+                    <p class="total-value" id="valor_vencido">{{ vencido }}</p>
+                </div>
+                <div class="total-box">
+                    <span class="status-label status-success">Pago</span>
+                    <p class="total-value" id="valor_pago">{{ pago }}</p>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fornecedor</th>
+                            <th>Descrição</th>
+                            <th>Vencimento</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in contas %}
+                        <tr>
+                            <td style="font-weight: 500;">{{ c.fornecedor }}</td>
+                            <td style="color: var(--text-secondary);">{{ c.descricao }}</td>
+                            <td>{{ c.vencimento }}</td>
+                            <td><span class="badge {{ c.status|lower|replace(' ', '_') }}">{{ c.status }}</span></td>
+                            <td style="text-align: right; font-weight: 600;">R$ {{ "%.2f"|format(c.valor)|replace('.',
+                                ',') }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-secondary);">Nenhuma conta
+                                registrada.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if fotos_melhorias %}
+        <div class="section-header" style="margin-top: 40px;">
+            <h2 class="section-title">Registro de Melhorias</h2>
+        </div>
+        <div class="photo-grid">
+            {% for foto_item in fotos_melhorias %}
+            <div class="comparison-card">
+                <h4>{{ foto_item.titulo }} ({{ foto_item.tipo|upper }})</h4>
+                <div class="comparison-images">
+                    <div class="img-box">
+                        <img src="{{ foto_item.antes }}" alt="Antes"
+                            onerror="this.src='https://placehold.co/300x200/ccc/666?text=ANTES+FOTO+NAO+ENCONTRADA'">
+                        <div class="img-label">ANTES</div>
+                    </div>
+
+                    {% if foto_item.depois %}
+                    <div class="img-box">
+                        <img src="{{ foto_item.depois }}" alt="Depois"
+                            onerror="this.src='https://placehold.co/300x200/27ae60/white?text=DEPOIS+FOTO+NAO+ENCONTRADA'">
+                        <div class="img-label">DEPOIS</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div>
+    {% endif %}
+
+    <script>
+        // Dados para os gráficos vêm do Flask (Python)
+        var vendasData = {{ valores_diarios | tojson }};
+        var datasData = {{ datas_diarias | tojson }};
+
+        // Gráfico de Vendas Diárias
+        new Chart(document.getElementById('vendasChart'), {
+            type: 'line',
+            data: {
+                labels: datasData,
+                datasets: [{
+                    label: 'Vendas (R$)',
+                    data: vendasData,
+                    borderColor: '#003087',
+                    backgroundColor: 'rgba(0, 48, 135, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#003087'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Gráfico Formas de Pagamento
+        new Chart(document.getElementById('formasChart'), {
+            type: 'doughnut',
+            data: {
+                labels: {{ formas_pagamento | map(attribute = 'nome') | list | tojson }},
+            datasets: [{
+                data: {{ formas_pagamento | map(attribute = 'valor') | list | tojson }},
+            backgroundColor: ['#003087', '#F15A29', '#10B981', '#F59E0B', '#6366F1'],
+            borderWidth: 0
+                }]
+            },
+            options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } }
+            },
+            cutout: '70%'
+        }
+        });
+
+        // Gráfico Top Produtos
+        new Chart(document.getElementById('topProdutos'), {
+            type: 'bar',
+            data: {
+                labels: {{ top_produtos | map(attribute = 0) | list | tojson }},
+            datasets: [{
+                data: {{ top_produtos | map(attribute = 1) | list | tojson }},
+            backgroundColor: '#F15A29',
+            borderRadius: 4,
+            barPercentage: 0.7
+                }]
+            },
+            options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { beginAtZero: true, grid: { display: false } }
+            }
+        }
+        });
+
+        // --- SCRIPT PARA FORMATAR MOEDA (Padrão BR) ---
+        function formatarMoeda(valor) {
+            // Converte o valor para float, caso venha como string
+            const num = parseFloat(valor);
+            if (isNaN(num)) return 'R$ 0,00';
+
+            // Usa o objeto Intl.NumberFormat para formatar para BRL
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(num);
+        }
+
+        // Aplica a formatação nos totais usando os IDs
+        // O Jinja renderiza o número puro e o JavaScript formata na página
+        document.getElementById('valor_a_vencer').textContent = formatarMoeda({{ a_vencer }});
+        document.getElementById('valor_vencido').textContent = formatarMoeda({{ vencido }});
+        document.getElementById('valor_pago').textContent = formatarMoeda({{ pago }});
+        // -----------------------------------------------------
+
+    </script>
+</body>
+
+</html>
