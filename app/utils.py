@@ -347,7 +347,18 @@ def ler_dados():
         }
         formas['Tipo'] = formas['Forma de Pagamento'].map(formas_map).fillna('Outros')
         resumo_formas = formas.groupby('Tipo')['Valor'].sum().round(2)
-        formas_data = [{"nome": k, "valor": float(v)} for k, v in resumo_formas.items()]
+        total_formas = resumo_formas.sum()
+        # Adiciona porcentagem para cada forma de pagamento
+        formas_data = []
+        for k, v in resumo_formas.items():
+            porcentagem = round((float(v) / total_formas * 100), 1) if total_formas > 0 else 0
+            formas_data.append({
+                "nome": k,
+                "valor": float(v),
+                "porcentagem": porcentagem
+            })
+        # Ordena por valor (maior para menor)
+        formas_data = sorted(formas_data, key=lambda x: x['valor'], reverse=True)
 
         produtos['Quantidade'] = pd.to_numeric(produtos['Quantidade'], errors='coerce').fillna(0)
         top10 = produtos.groupby('Produto')['Quantidade'].sum().sort_values(ascending=False).head(10)
