@@ -21,6 +21,36 @@ def limpar_numero(x):
         return 0.0
 
 
+def formatar_data(data_str):
+    """
+    Formata uma data removendo a hora e retornando apenas dd/mm/yyyy
+    """
+    if pd.isna(data_str) or data_str == '' or data_str is None:
+        return ''
+
+    data_str = str(data_str).strip()
+
+    try:
+        # Tenta parsear a data em diferentes formatos
+        if ' ' in data_str:
+            # Remove a hora se existir (formato: 2026-01-11 00:00:00)
+            data_str = data_str.split(' ')[0]
+
+        # Tenta converter para datetime
+        if '-' in data_str:
+            # Formato: yyyy-mm-dd
+            data_obj = datetime.strptime(data_str, '%Y-%m-%d')
+        elif '/' in data_str:
+            # Formato: dd/mm/yyyy
+            data_obj = datetime.strptime(data_str, '%d/%m/%Y')
+        else:
+            return data_str
+
+        return data_obj.strftime('%d/%m/%Y')
+    except:
+        return data_str
+
+
 def get_absolute_file_url(relative_path):
     """
     Converte um caminho relativo do Flask (/static/...) para um URL absoluto 'file:///'
@@ -90,6 +120,10 @@ def analisar_despesas_extras(despesas_df):
     despesas_df['Categoria'] = despesas_df['Categoria'].fillna('Outros')
     despesas_df['Pago com'] = despesas_df['Pago com'].fillna('Não especificado')
 
+    # Formata a data e cria campo para ordenação
+    despesas_df['Data_Formatada'] = despesas_df['Data'].apply(formatar_data)
+    despesas_df['Data_Sort'] = pd.to_datetime(despesas_df['Data'], errors='coerce')
+
     total_despesas = despesas_df['Valor'].sum()
 
     # Agrupa por categoria
@@ -100,11 +134,14 @@ def analisar_despesas_extras(despesas_df):
         despesas_df['Pago com'].str.contains('próprio|gerente|pessoal', case=False, na=False)
     ]['Valor'].sum()
 
+    # Ordena por data (da mais antiga para a mais recente)
+    despesas_df = despesas_df.sort_values('Data_Sort', ascending=True)
+
     # Lista detalhada de despesas
     lista_despesas = []
     for _, row in despesas_df.iterrows():
         lista_despesas.append({
-            'data': str(row.get('Data', '')),
+            'data': row.get('Data_Formatada', ''),
             'descricao': str(row.get('Descrição', '')),
             'categoria': str(row.get('Categoria', 'Outros')),
             'valor': limpar_numero(row.get('Valor (R$)', 0)),
@@ -127,6 +164,10 @@ def analisar_sangrias(sangria_df):
     sangria_df['Valor'] = sangria_df['Valor R$'].apply(limpar_numero)
     sangria_df['Motivo'] = sangria_df['Motivo'].fillna('Não especificado')
 
+    # Formata a data e cria campo para ordenação
+    sangria_df['Data_Formatada'] = sangria_df['Data'].apply(formatar_data)
+    sangria_df['Data_Sort'] = pd.to_datetime(sangria_df['Data'], errors='coerce')
+
     total_sangrias = sangria_df['Valor'].sum()
 
     # Agrupa por motivo
@@ -135,11 +176,14 @@ def analisar_sangrias(sangria_df):
     # Conta quantidade de sangrias
     qtd_sangrias = len(sangria_df)
 
+    # Ordena por data (da mais antiga para a mais recente)
+    sangria_df = sangria_df.sort_values('Data_Sort', ascending=True)
+
     # Lista detalhada
     lista_sangrias = []
     for _, row in sangria_df.iterrows():
         lista_sangrias.append({
-            'data': str(row.get('Data', '')),
+            'data': row.get('Data_Formatada', ''),
             'motivo': str(row.get('Motivo', '')),
             'observacoes': str(row.get('Observações', '')),
             'valor': limpar_numero(row.get('Valor R$', 0))
@@ -243,25 +287,43 @@ def ler_dados():
         saidas_total = round(sangrias['total'] + despesas_extras['total'], 2)
         saldo_caixa = round(faturamento_total - saidas_total, 2)
 
-        # CONTAS A PAGAR
+        # CONTAS A PAGAR - FILTRA APENAS MÊS ATUAL
         contas = []
+        mes_atual = datetime.now().month
+        ano_atual = datetime.now().year
+
         for _, row in contas_df.iterrows():
             if pd.notna(row.get('ID')) and str(row['ID']).strip():
                 data_vencimento = str(row.get('DATA VENCIMENTO', ''))
-                try:
-                    data_obj = datetime.strptime(data_vencimento[:10], '%Y-%m-%d')
-                    data_formatada = data_obj.strftime('%d/%m/%Y')
-                except ValueError:
-                    data_formatada = data_vencimento
+                data_formatada = formatar_data(data_vencimento)
 
-                contas.append({
-                    "id": int(row['ID']),
-                    "fornecedor": str(row.get('FORNECEDOR', '')),
-                    "descricao": str(row.get('DESCRIÇÃO', '')),
-                    "valor": limpar_numero(row.get('VALOR', 0)),
-                    "vencimento": data_formatada,
-                    "status": str(row.get('STATUS', '')).strip().upper()
-                })
+                # Converte para datetime para filtrar por mês
+                try:
+                    if ' ' in data_vencimento:
+                        data_vencimento = data_vencimento.split(' ')[0]
+                    data_obj = pd.to_datetime(data_vencimento, errors='coerce')
+
+                    # Filtra apenas contas do mês e ano atual
+                    if pd.notna(data_obj) and data_obj.month == mes_atual and data_obj.year == ano_atual:
+                        contas.append({
+                            "id": int(row['ID']),
+                            "fornecedor": str(row.get('FORNECEDOR', '')),
+                            "descricao": str(row.get('DESCRIÇÃO', '')),
+                            "valor": limpar_numero(row.get('VALOR', 0)),
+                            "vencimento": data_formatada,
+                            "vencimento_sort": data_obj,
+                            "status": str(row.get('STATUS', '')).strip().upper()
+                        })
+                except:
+                    # Se não conseguir parsear a data, ignora a conta
+                    continue
+
+        # Ordena por data de vencimento (da mais antiga para a mais recente)
+        contas = sorted(contas, key=lambda x: x['vencimento_sort'])
+
+        # Remove o campo vencimento_sort que foi usado apenas para ordenação
+        for conta in contas:
+            conta.pop('vencimento_sort', None)
 
         a_vencer = sum(c['valor'] for c in contas if c['status'] == 'A VENCER')
         vencido = sum(c['valor'] for c in contas if c['status'] == 'VENCIDO')
