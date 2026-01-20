@@ -334,6 +334,85 @@
         .table-container td:nth-child(5) {
             color: var(--brand-blue-dark);
         }
+
+        /* Estilos para detalhamento de formas de pagamento */
+        .formas-detalhes {
+            padding: 10px 0;
+        }
+
+        .formas-lista {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .forma-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .forma-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .forma-nome-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .forma-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .forma-nome {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95em;
+        }
+
+        .forma-valores {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .forma-porcentagem {
+            font-weight: 700;
+            font-size: 1.1em;
+            color: var(--brand-blue-dark);
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .forma-valor {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            min-width: 100px;
+            text-align: right;
+        }
+
+        .forma-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: var(--bg-light);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .forma-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 
@@ -446,8 +525,39 @@
                 <div class="card-header">
                     <h3>Distribuição de Vendas por Forma de Pagamento</h3>
                 </div>
-                <div class="chart-container" style="height: 350px;">
-                    <canvas id="formasChart"></canvas>
+                <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; align-items: start;">
+                    <div class="chart-container" style="height: 350px;">
+                        <canvas id="formasChart"></canvas>
+                    </div>
+                    <div class="formas-detalhes">
+                        <div class="formas-detalhes-header">
+                            <h4
+                                style="margin: 0 0 15px 0; font-size: 1em; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">
+                                Detalhamento</h4>
+                        </div>
+                        <div class="formas-lista">
+                            {% for forma in formas_pagamento %}
+                            <div class="forma-item">
+                                <div class="forma-info">
+                                    <div class="forma-nome-wrapper">
+                                        <span class="forma-indicator"
+                                            style="background-color: {{ ['#003087', '#F15A29', '#10B981', '#F59E0B', '#6366F1', '#8B5CF6', '#EC4899'][loop.index0 % 7] }};"></span>
+                                        <span class="forma-nome">{{ forma.nome }}</span>
+                                    </div>
+                                    <div class="forma-valores">
+                                        <span class="forma-porcentagem">{{ forma.porcentagem }}%</span>
+                                        <span class="forma-valor">R$ {{ forma.valor | brl }}</span>
+                                    </div>
+                                </div>
+                                <div class="forma-bar-container">
+                                    <div class="forma-bar"
+                                        style="width: {{ forma.porcentagem }}%; background-color: {{ ['#003087', '#F15A29', '#10B981', '#F59E0B', '#6366F1', '#8B5CF6', '#EC4899'][loop.index0 % 7] }};">
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -680,24 +790,70 @@
         });
 
         // Gráfico Formas de Pagamento
-        new Chart(document.getElementById('formasChart'), {
+        var formasData = {{ formas_pagamento | tojson }};
+        var formasLabels = formasData.map(f => f.nome);
+        var formasValores = formasData.map(f => f.valor);
+        var formasPorcentagens = formasData.map(f => f.porcentagem);
+        var formasCores = ['#003087', '#F15A29', '#10B981', '#F59E0B', '#6366F1', '#8B5CF6', '#EC4899'];
+        var totalFormas = formasValores.reduce((a, b) => a + b, 0);
+
+        // Plugin para adicionar texto no centro do gráfico
+        var centerTextPlugin = {
+            id: 'centerText',
+            afterDraw: function (chart) {
+                var ctx = chart.ctx;
+                var centerX = chart.chartArea.left + (chart.chartArea.right - chart.chartArea.left) / 2;
+                var centerY = chart.chartArea.top + (chart.chartArea.bottom - chart.chartArea.top) / 2;
+
+                ctx.save();
+                ctx.font = 'bold 14px Inter';
+                ctx.fillStyle = '#1F2937';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Total', centerX, centerY - 12);
+
+                ctx.font = 'bold 20px Inter';
+                ctx.fillStyle = '#003087';
+                ctx.fillText('R$ ' + totalFormas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), centerX, centerY + 8);
+                ctx.restore();
+            }
+        };
+
+        var formasChart = new Chart(document.getElementById('formasChart'), {
             type: 'doughnut',
             data: {
-                labels: {{ formas_pagamento | map(attribute = 'nome') | list | tojson }},
-            datasets: [{
-                data: {{ formas_pagamento | map(attribute = 'valor') | list | tojson }},
-            backgroundColor: ['#003087', '#F15A29', '#10B981', '#F59E0B', '#6366F1'],
-            borderWidth: 0
+                labels: formasLabels,
+                datasets: [{
+                    data: formasValores,
+                    backgroundColor: formasCores.slice(0, formasLabels.length),
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
                 }]
             },
             options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } }
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                var index = context.dataIndex;
+                                var value = context.parsed || 0;
+                                var porcentagem = formasPorcentagens[index];
+                                return formasLabels[index] + ': ' + porcentagem + '% (R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ')';
+                            }
+                        }
+                    }
+                },
+                cutout: '60%',
+                layout: {
+                    padding: 15
+                }
             },
-            cutout: '70%'
-        }
+            plugins: [centerTextPlugin]
         });
 
         // Gráfico Top Produtos
