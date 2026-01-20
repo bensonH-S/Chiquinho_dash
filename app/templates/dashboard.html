@@ -857,26 +857,82 @@
         });
 
         // Gráfico Top Produtos
-        new Chart(document.getElementById('topProdutos'), {
+        var produtosData = {{ top_produtos | tojson }};
+        var produtosLabels = produtosData.map(p => p[0]);
+        var produtosQuantidades = produtosData.map(p => p[1]);
+
+        // Plugin para adicionar labels nas barras
+        var barLabelsPlugin = {
+            id: 'barLabels',
+            afterDatasetsDraw: function (chart) {
+                var ctx = chart.ctx;
+                var meta = chart.getDatasetMeta(0);
+
+                ctx.save();
+                ctx.font = 'bold 11px Inter';
+                ctx.fillStyle = '#1F2937';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+
+                meta.data.forEach(function (bar, index) {
+                    var value = produtosQuantidades[index];
+                    // Para gráficos horizontais (indexAxis: 'y'), x é a posição final da barra
+                    var x = bar.x;
+                    var y = bar.y;
+
+                    // Posiciona o texto no final da barra com um pequeno espaçamento
+                    ctx.fillText(value + ' un', x + 8, y);
+                });
+
+                ctx.restore();
+            }
+        };
+
+        var topProdutosChart = new Chart(document.getElementById('topProdutos'), {
             type: 'bar',
             data: {
-                labels: {{ top_produtos | map(attribute = 0) | list | tojson }},
-            datasets: [{
-                data: {{ top_produtos | map(attribute = 1) | list | tojson }},
-            backgroundColor: '#F15A29',
-            borderRadius: 4,
-            barPercentage: 0.7
+                labels: produtosLabels,
+                datasets: [{
+                    label: 'Quantidade',
+                    data: produtosQuantidades,
+                    backgroundColor: '#F15A29',
+                    borderRadius: 4,
+                    barPercentage: 0.7
                 }]
             },
             options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            indexAxis: 'y',
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { beginAtZero: true, grid: { display: false } }
-            }
-        }
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return 'Quantidade: ' + context.parsed.x + ' unidades';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            stepSize: 1,
+                            maxTicksLimit: 10
+                        }
+                    },
+                    y: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            },
+            plugins: [barLabelsPlugin]
         });
     </script>
 </body>
