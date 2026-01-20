@@ -51,6 +51,51 @@ def formatar_data(data_str):
         return data_str
 
 
+def extrair_periodo_vendas(vendas_df):
+    """
+    Extrai o período de vendas da planilha VENDAS_DIARIAS.
+    Lê as datas das colunas A até G (primeira linha) e retorna o período formatado.
+    """
+    try:
+        # Pega a primeira linha que contém as datas (índice 0)
+        datas = []
+
+        # Lê as colunas de A (0) até G (6)
+        for i in range(7):
+            data_raw = vendas_df.iloc[0, i]
+            if pd.notna(data_raw):
+                # Converte para datetime
+                if isinstance(data_raw, str):
+                    if ' ' in data_raw:
+                        data_raw = data_raw.split(' ')[0]
+
+                    if '-' in data_raw:
+                        data_obj = datetime.strptime(data_raw, '%Y-%m-%d')
+                    elif '/' in data_raw:
+                        data_obj = datetime.strptime(data_raw, '%d/%m/%Y')
+                    else:
+                        continue
+                else:
+                    # Se já for datetime
+                    data_obj = pd.to_datetime(data_raw)
+
+                datas.append(data_obj)
+
+        if len(datas) >= 2:
+            # Pega a primeira e última data
+            data_inicial = min(datas)
+            data_final = max(datas)
+
+            # Formata o período
+            return f"{data_inicial.strftime('%d/%m/%Y')} a {data_final.strftime('%d/%m/%Y')}"
+        else:
+            return "Período não identificado"
+
+    except Exception as e:
+        print(f"Erro ao extrair período: {e}")
+        return "Período não identificado"
+
+
 def get_absolute_file_url(relative_path):
     """
     Converte um caminho relativo do Flask (/static/...) para um URL absoluto 'file:///'
@@ -256,10 +301,38 @@ def ler_dados():
         despesas_df = pd.read_excel(EXCEL_FILE, sheet_name="DESPESAS EXTRAS", dtype=str)
         problemas = pd.read_excel(EXCEL_FILE, sheet_name="Problemas", dtype=str)
 
+        # EXTRAI O PERÍODO AUTOMATICAMENTE DA PLANILHA VENDAS_DIARIAS
+        periodo = extrair_periodo_vendas(vendas)
+
         faturamento_total = limpar_numero(vendas.iloc[1, 8])
 
         valores_diarios = [limpar_numero(vendas.iloc[1, i]) for i in range(7)]
-        datas_diarias = ['01/12', '02/12', '03/12', '04/12', '05/12', '06/12', '07/12']
+
+        # Extrai as datas formatadas para o gráfico
+        datas_diarias = []
+        for i in range(7):
+            data_raw = vendas.iloc[0, i]
+            if pd.notna(data_raw):
+                try:
+                    if isinstance(data_raw, str):
+                        if ' ' in data_raw:
+                            data_raw = data_raw.split(' ')[0]
+                        if '-' in data_raw:
+                            data_obj = datetime.strptime(data_raw, '%Y-%m-%d')
+                        elif '/' in data_raw:
+                            data_obj = datetime.strptime(data_raw, '%d/%m/%Y')
+                        else:
+                            datas_diarias.append(str(data_raw))
+                            continue
+                    else:
+                        data_obj = pd.to_datetime(data_raw)
+
+                    datas_diarias.append(data_obj.strftime('%d/%m'))
+                except:
+                    datas_diarias.append(f'Dia {i+1}')
+            else:
+                datas_diarias.append(f'Dia {i+1}')
+
         melhor_dia_valor = max(valores_diarios)
         melhor_dia = datas_diarias[valores_diarios.index(melhor_dia_valor)]
 
@@ -351,7 +424,7 @@ def ler_dados():
             'pago': round(pago, 2),
             'contas': contas,
             'fotos_melhorias': fotos_melhorias,
-            'periodo': '01 a 07 de dezembro de 2025',
+            'periodo': periodo,  # AGORA É EXTRAÍDO AUTOMATICAMENTE
             'data_hoje': datetime.now().strftime('%d/%m/%Y')
         }
 
